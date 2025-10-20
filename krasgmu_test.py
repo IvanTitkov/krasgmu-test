@@ -4,7 +4,10 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import datetime, os
 
-st.set_page_config(page_title="Я — будущий врач?! (v7)", layout="centered", initial_sidebar_state="collapsed")
+# ----------------------------------------------------------
+# НАСТРОЙКИ СТРАНИЦЫ
+# ----------------------------------------------------------
+st.set_page_config(page_title="Я — будущий врач?! (v8)", layout="centered", initial_sidebar_state="collapsed")
 
 try:
     st.image("Ресурс 1 (2).png", width=140)
@@ -14,7 +17,9 @@ except Exception:
 st.markdown("# Методика оценки готовности к медицинскому образованию")
 st.caption("Разработано кафедрой клинической психологии и педагогики КрасГМУ, Красноярск, 2025")
 
-# --- CSS ---
+# ----------------------------------------------------------
+# CSS
+# ----------------------------------------------------------
 st.markdown("""
 <style>
 .question-text { font-size: 18px !important; line-height: 1.6; font-weight: 500; margin: 10px 0 0 0; }
@@ -26,10 +31,13 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# --- Константы ---
-GATES_VO = {"STAB":55, "BIO_TOL":55}
-GATES_SPO = {"STAB":50, "BIO_TOL":50}
+# ----------------------------------------------------------
+# КОНСТАНТЫ
+# ----------------------------------------------------------
+GATES_VO = {"STAB":58, "BIO_TOL":58}
+GATES_SPO = {"STAB":55, "BIO_TOL":55}
 GATE_PENALTY = 0.85
+
 IGMO_WEIGHTS = {
     "HELP": 0.15, "EMPA": 0.15, "PUBH": 0.10,
     "STAB": 0.15, "BIO_TOL": 0.15,
@@ -44,19 +52,43 @@ SCALE_LABELS = {
     'STAB': 'Устойчивость',
     'PREC': 'Внимательность',
     'MANUAL': 'Ловкость и координация движений',
-    'BIO_TOL': 'Спокойное отношение к мед. процедурам',
-    'TECH': 'Интерес к медицинским технологиям',
-    'SCI': 'Исследование',
+    'BIO_TOL': 'Толерантность к мед. процедурам',
+    'TECH': 'Интерес к технологиям',
+    'SCI': 'Исследовательский интерес',
     'PEDI': 'Работа с детьми',
     'PUBH': 'Интерес к профилактике',
 }
 
+# ----------------------------------------------------------
+# ЭТАЛОННЫЕ ЦЕНТРОИДЫ
+# ----------------------------------------------------------
+SCALE_ORDER = ['HELP','EMPA','STAB','PREC','MANUAL','BIO_TOL','TECH','SCI','PEDI','PUBH']
+
+CENTROIDS_VO = {
+    'Лечебное дело':                 {'HELP':80,'EMPA':75,'STAB':80,'PREC':65,'MANUAL':55,'BIO_TOL':80,'TECH':55,'SCI':60,'PEDI':30,'PUBH':45},
+    'Педиатрия':                     {'HELP':85,'EMPA':90,'STAB':75,'PREC':60,'MANUAL':45,'BIO_TOL':70,'TECH':45,'SCI':55,'PEDI':90,'PUBH':40},
+    'Стоматология':                  {'HELP':70,'EMPA':70,'STAB':80,'PREC':80,'MANUAL':90,'BIO_TOL':85,'TECH':55,'SCI':50,'PEDI':20,'PUBH':30},
+    'Медико-профилактическое дело':  {'HELP':70,'EMPA':60,'STAB':75,'PREC':85,'MANUAL':40,'BIO_TOL':65,'TECH':70,'SCI':65,'PEDI':25,'PUBH':90},
+    'Клиническая психология':        {'HELP':85,'EMPA':90,'STAB':70,'PREC':60,'MANUAL':30,'BIO_TOL':40,'TECH':40,'SCI':55,'PEDI':35,'PUBH':35},
+    'Медицинская кибернетика':       {'HELP':60,'EMPA':55,'STAB':70,'PREC':70,'MANUAL':30,'BIO_TOL':55,'TECH':90,'SCI':80,'PEDI':15,'PUBH':55},
+    'Медицинская биофизика':         {'HELP':55,'EMPA':50,'STAB':70,'PREC':75,'MANUAL':30,'BIO_TOL':60,'TECH':80,'SCI':90,'PEDI':10,'PUBH':45},
+}
+
+CENTROIDS_SPO = {
+    'Сестринское дело (СПО)':        {'HELP':80,'EMPA':75,'STAB':75,'PREC':70,'MANUAL':40,'BIO_TOL':70,'TECH':45,'SCI':45,'PEDI':30,'PUBH':45},
+    'Лабораторная диагностика (СПО)':{'HELP':60,'EMPA':50,'STAB':70,'PREC':90,'MANUAL':35,'BIO_TOL':65,'TECH':75,'SCI':60,'PEDI':10,'PUBH':55},
+    'Медицинский массаж (СПО)':      {'HELP':70,'EMPA':70,'STAB':70,'PREC':65,'MANUAL':85,'BIO_TOL':60,'TECH':35,'SCI':0, 'PEDI':0, 'PUBH':0},
+    'Фармация (СПО)':                {'HELP':65,'EMPA':55,'STAB':70,'PREC':90,'MANUAL':35,'BIO_TOL':55,'TECH':70,'SCI':60,'PEDI':20,'PUBH':60},
+}
+
+# ----------------------------------------------------------
+# ОПРОСНИК (30 пунктов)
+# ----------------------------------------------------------
 SCALES = {
     'HELP': [
         {"text":"Мне важно, чтобы моя работа приносила пользу людям.", "rev":False},
         {"text":"Мне приятно видеть, что благодаря мне человеку становится лучше.", "rev":False},
-        {"text":"Я готов помогать даже когда это требует усилий.", "rev":False},
-        {"text":"Я ощущаю смысл в том, чтобы посвятить жизнь помощи людям и развитию медицины.", "rev":False, "extra_gmo": True},
+        {"text":"Я ощущаю смысл в том, чтобы посвятить жизнь помощи людям и развитию медицины.", "rev":False},
     ],
     'EMPA': [
         {"text":"Я легко понимаю, что чувствует другой человек.", "rev":False},
@@ -91,8 +123,7 @@ SCALES = {
     'SCI': [
         {"text":"Мне нравится проверять гипотезы и делать выводы.", "rev":False},
         {"text":"Мне интересны опыты и эксперименты.", "rev":False},
-        {"text":"У меня есть терпение собирать и сравнивать факты.", "rev":False},
-        {"text":"Мне интересно узнавать, как устроено тело человека и как работают лекарства.", "rev":False, "extra_gmo": True},
+        {"text":"Мне интересно узнавать, как устроено тело человека и как работают лекарства.", "rev":False},
     ],
     'PEDI': [
         {"text":"Мне комфортно общаться с детьми.", "rev":False},
@@ -108,6 +139,9 @@ SCALES = {
 
 ORDER = list(SCALES.keys())
 
+# ----------------------------------------------------------
+# ФУНКЦИИ
+# ----------------------------------------------------------
 def reverse_score(v): return 6 - v
 
 def compute_profile(answers):
@@ -129,19 +163,9 @@ def compute_igmo(profile, answers, level):
     base = sum(IGMO_WEIGHTS[sc] * profile.get(sc, 0.0) for sc in IGMO_WEIGHTS)
     fails = apply_level_gates(level, profile)
     if fails: base *= (GATE_PENALTY ** len(fails))
-    delta = IGMO_EXTRA_K * ((answers.get("HELP_3", 3) - 3) + (answers.get("SCI_3", 3) - 3))
+    delta = IGMO_EXTRA_K * ((answers.get("HELP_2", 3) - 3) + (answers.get("SCI_2", 3) - 3))
     igmo = np.clip(base + delta, 0.0, 100.0)
     qc_flags = []
-    sdi_keys = [("HELP",0),("EMPA",1),("PUBH",2)]
-    sdi_vals = [reverse_score(answers[f"{s}_{i}"]) if SCALES[s][i]["rev"] else answers[f"{s}_{i}"] for s,i in sdi_keys]
-    sdi = float(np.mean(sdi_vals)) if sdi_vals else 3.0
-    if sdi >= 4.6: qc_flags.append("Социальная желательность (высокая)")
-    pairs = [("HELP",0,"HELP",2),("PREC",0,"PREC",1)]
-    for a,b,c,d in pairs:
-        av,bv = answers[f"{a}_{b}"],answers[f"{c}_{d}"]
-        if SCALES[a][b].get("rev"): av=reverse_score(av)
-        if SCALES[c][d].get("rev"): bv=reverse_score(bv)
-        if abs(av-bv)>2: qc_flags.append("Низкая согласованность ответов"); break
     vals=[]
     for sc,itms in SCALES.items():
         for i,it in enumerate(itms):
@@ -150,12 +174,11 @@ def compute_igmo(profile, answers, level):
             vals.append(v)
     if np.std(vals)<0.5: qc_flags.append("Однообразные ответы")
     qc_penalty=min(IGMO_QC_MAX_PENALTY,3*len(qc_flags))
-    return max(0.0, igmo-qc_penalty), fails, qc_flags, sdi
+    return max(0.0, igmo-qc_penalty), fails, qc_flags
 
-def save_to_csv(answers, profile, igmo, sdi, qc_flags, level):
+def save_to_csv(answers, profile, igmo, qc_flags, level):
     data = {"timestamp": datetime.datetime.now().isoformat(),
             "level": level, "IGMO": round(igmo,2),
-            "SDI": round(sdi,2),
             "QC_flags": "; ".join(qc_flags) if qc_flags else ""}
     for sc,val in profile.items(): data[sc]=round(val,2)
     df=pd.DataFrame([data])
@@ -163,9 +186,45 @@ def save_to_csv(answers, profile, igmo, sdi, qc_flags, level):
     df.to_csv(fn, mode="a", header=not os.path.exists(fn),
               index=False, encoding="utf-8-sig")
 
+def radar_chart(profile):
+    labels = list(ORDER)
+    values = [profile[k] for k in labels] + [profile[labels[0]]]
+    angles = np.linspace(0, 2*np.pi, len(labels), endpoint=False).tolist() + [0]
+    fig = plt.figure(figsize=(6,6))
+    ax = plt.subplot(111, polar=True)
+    ax.plot(angles, values, color="tab:blue")
+    ax.fill(angles, values, alpha=.15, color="tab:blue")
+    ax.set_xticks(angles[:-1])
+    ax.set_xticklabels([SCALE_LABELS[k] for k in labels], fontsize=10)
+    ax.tick_params(axis='x', pad=12)
+    ax.set_yticks([20, 40, 60, 80, 100])
+    ax.set_ylim(0, 100)
+    ax.tick_params(pad=8)
+    return fig
+
+# --- Косинусное ранжирование ---
+def _vec_from_profile(profile): return np.array([profile.get(k, 0.0) for k in SCALE_ORDER])
+def _vec_from_centroid(centroid): return np.array([centroid[k] for k in SCALE_ORDER])
+def _cosine(a,b):
+    na=np.linalg.norm(a); nb=np.linalg.norm(b)
+    return 0.0 if na==0 or nb==0 else float(np.dot(a,b)/(na*nb))
+def rank_specialties(profile, level, fails):
+    user=_vec_from_profile(profile)
+    pool = CENTROIDS_VO if level.startswith("Высшего") else CENTROIDS_SPO
+    ranks=[]
+    for name, ctr in pool.items():
+        sim=_cosine(user,_vec_from_centroid(ctr))
+        score=sim*100.0*(GATE_PENALTY**len(fails))
+        ranks.append((name,round(score,1)))
+    ranks.sort(key=lambda x:x[1],reverse=True)
+    return ranks
+
+# ----------------------------------------------------------
+# ОПРОСНИК
+# ----------------------------------------------------------
 st.markdown("### Уровень планируемого образования")
-level=st.radio("Ты планируешь изучать медицину на уровне…",
-               ["Высшего образования (ВО)", "Среднего профессионального образования (СПО)"])
+level = st.radio("Ты планируешь изучать медицину на уровне…",
+                 ["Высшего образования (ВО)", "Среднего профессионального образования (СПО)"])
 st.divider()
 
 with st.form("short_form"):
@@ -178,179 +237,50 @@ with st.form("short_form"):
             n+=1
     submitted=st.form_submit_button("Готово — показать результат")
 
-def radar_chart(profile):
-    labels = list(ORDER)
-    values = [profile[k] for k in labels] + [profile[labels[0]]]
-    angles = np.linspace(0, 2*np.pi, len(labels), endpoint=False).tolist() + [0]
-
-    fig = plt.figure(figsize=(6,6))
-    ax = plt.subplot(111, polar=True)
-    ax.plot(angles, values, color="tab:blue")
-    ax.fill(angles, values, alpha=.15, color="tab:blue")
-
-    ax.set_xticks(angles[:-1])
-    ax.set_xticklabels([SCALE_LABELS[k] for k in labels], fontsize=10)  # <- без labelpad
-    ax.tick_params(axis='x', pad=12)  # <- отступ подписей от оси
-
-    ax.set_yticks([20, 40, 60, 80, 100])
-    ax.set_ylim(0, 100)
-    ax.tick_params(pad=8)
-    return fig
-
-
+# ----------------------------------------------------------
+# ОБРАБОТКА РЕЗУЛЬТАТОВ
+# ----------------------------------------------------------
 if submitted:
-    profile = compute_profile(answers)
-    igmo, fails, qc_flags, sdi = compute_igmo(profile, answers, level)
+    profile=compute_profile(answers)
+    igmo,fails,qc_flags=compute_igmo(profile,answers,level)
+
     st.markdown("## Индекс готовности к медицинскому образованию (ИГМО)")
-    msg = f"ИГМО: **{igmo:.1f} / 100**"
-    if igmo >= 80:
-        st.success(msg + " — высокий уровень.")
-    elif igmo >= 60:
-        st.info(msg + " — умеренный уровень.")
-    elif igmo >= 40:
-        st.warning(msg + " — пограничный уровень.")
-    else:
-        st.error(msg + " — низкий уровень.")
+    msg=f"ИГМО: **{igmo:.1f} / 100**"
+    if igmo>=80: st.success(msg+" — высокий уровень.")
+    elif igmo>=60: st.info(msg+" — умеренный уровень.")
+    elif igmo>=40: st.warning(msg+" — пограничный уровень.")
+    else: st.error(msg+" — низкий уровень.")
     st.caption("ИГМО отражает общий уровень личностно-психологической подготовки к обучению в медицинском вузе.")
 
     if fails:
-        ftxt = "; ".join([f"{SCALE_LABELS[s]} < {t} (у вас {profile[s]:.0f})" for s, t, _ in fails])
-        st.warning("Критические пороги не достигнуты — " + ftxt)
+        ftxt="; ".join([f"{SCALE_LABELS[s]} < {t} (у вас {profile[s]:.0f})" for s,t,_ in fails])
+        st.warning("Критические пороги не достигнуты — "+ftxt)
     if qc_flags:
-        st.caption(f"Флаги качества: {', '.join(qc_flags)}  (SDI={sdi:.2f})")
+        st.caption(f"Флаги качества: {', '.join(qc_flags)}")
 
-    dfp = pd.DataFrame({"Шкала": [SCALE_LABELS[k] for k in ORDER],
-                        "Баллы": [round(profile[k], 1) for k in ORDER]})
+    dfp=pd.DataFrame({"Шкала":[SCALE_LABELS[k] for k in ORDER],
+                      "Баллы":[round(profile[k],1) for k in ORDER]})
     st.dataframe(dfp, use_container_width=True)
     st.pyplot(radar_chart(profile))
 
-    save_to_csv(answers, profile, igmo, sdi, qc_flags, level)
+    save_to_csv(answers, profile, igmo, qc_flags, level)
 
-    # --- Подбор подходящих направлений (калибровано по центроидам) ---
-    # --- Подбор подходящих направлений (адаптированные пороги под короткую форму) ---
+    # --- РАНЖИРОВАНИЕ ---
+    st.markdown("## Подходящие медицинские специальности")
 
-st.markdown("## Подходящие медицинские специальности")
+    ranking = rank_specialties(profile, level, fails)
+    top3 = ranking[:3]
+    rest = ranking[3:]
 
-if submitted:
-    h = profile
-    recs = []
+    st.subheader("Топ-3 по соответствию")
+    for name, sc in top3:
+        st.write(f"**{name}** — {sc:.1f}%")
+        st.progress(min(100, int(round(sc))))
 
-    # --- функции-помощники ---
-    def count_ok(criteria):
-        """Возвращает, сколько критериев выполнено"""
-        return sum(1 for c in criteria if c)
+    if rest:
+        with st.expander("Показать остальные направления"):
+            for name, sc in rest:
+                st.write(f"{name} — {sc:.1f}%")
 
-    # --- ВО ---
-    if level.startswith("Высшего"):
-
-        # Лечебное дело
-        core = [
-            h["STAB"] >= 62,
-            h["BIO_TOL"] >= 62,
-            h["PREC"] >= 55,
-            h["HELP"] >= 58
-        ]
-        if count_ok(core) >= 3:
-            recs.append("**Лечебное дело** — устойчивость, переносимость процедур, внимание и выраженная гуманистическая мотивация.")
-
-        # Педиатрия
-        core = [
-            h["STAB"] >= 60,
-            h["BIO_TOL"] >= 58,
-            h["PREC"] >= 55,
-            h["HELP"] >= 60,
-            h["EMPA"] >= 68,
-            h["PEDI"] >= 65
-        ]
-        if count_ok(core) >= 5 and h["EMPA"] >= 68 and h["PEDI"] >= 65:
-            recs.append("**Педиатрия** — эмпатия и интерес к работе с детьми при сохранении устойчивости и внимательности.")
-
-        # Стоматология
-        core = [
-            h["MANUAL"] >= 70,
-            h["BIO_TOL"] >= 65,
-            h["STAB"] >= 62,
-            h["PREC"] >= 62
-        ]
-        if count_ok(core) >= 3 and h["MANUAL"] >= 70:
-            recs.append("**Стоматология** — точность, развитые мануальные навыки и стрессоустойчивость.")
-
-        # Медико-профилактическое дело
-        core = [
-            h["PUBH"] >= 68,
-            h["TECH"] >= 60,
-            h["PREC"] >= 62
-        ]
-        if count_ok(core) >= 2:
-            recs.append("**Медико-профилактическое дело** — интерес к технологиям и профилактике, внимательность к регламентам.")
-
-        # Клиническая психология
-        core = [
-            h["HELP"] >= 68,
-            h["EMPA"] >= 70
-        ]
-        if all(core):
-            recs.append("**Клиническая психология** — выраженная гуманистическая направленность и высокая эмпатия.")
-
-        # Медицинская кибернетика
-        core = [
-            h["TECH"] >= 72,
-            h["SCI"] >= 70
-        ]
-        if all(core):
-            recs.append("**Медицинская кибернетика** — сильная технологическая и исследовательская ориентация.")
-
-        # Медицинская биофизика
-        core = [
-            h["TECH"] >= 70,
-            h["SCI"] >= 75
-        ]
-        if all(core):
-            recs.append("**Медицинская биофизика** — интерес к исследованиям и устройству биологических систем.")
-
-    # --- СПО ---
-    else:
-        # Сестринское дело
-        core = [
-            h["HELP"] >= 60,
-            h["EMPA"] >= 60,
-            h["STAB"] >= 60,
-            h["BIO_TOL"] >= 58
-        ]
-        if count_ok(core) >= 3:
-            recs.append("**Сестринское дело (СПО)** — сочетаются гуманистическая направленность, эмпатия и устойчивость к медицинской среде.")
-
-        # Лабораторная диагностика
-        core = [
-            h["PREC"] >= 68,
-            h["TECH"] >= 65,
-            h["SCI"] >= 60,
-            h["BIO_TOL"] >= 58
-        ]
-        if count_ok(core) >= 3:
-            recs.append("**Лабораторная диагностика (СПО)** — точность, технологичность и исследовательская мотивация.")
-
-        # Фармация
-        core = [
-            h["PREC"] >= 68,
-            h["TECH"] >= 62
-        ]
-        if all(core):
-            recs.append("**Фармация (СПО)** — внимание к деталям и технологиям лекарств при умеренном контакте с людьми.")
-
-        # Медицинский массаж
-        core = [
-            h["MANUAL"] >= 72,
-            h["EMPA"] >= 60,
-            h["STAB"] >= 60,
-            h["BIO_TOL"] >= 55
-        ]
-        if count_ok(core) >= 3:
-            recs.append("**Медицинский массаж (СПО)** — развитые мануальные навыки, эмпатия и выдержка.")
-
-    # --- Вывод ---
-    if recs:
-        for r in recs:
-            st.markdown(r)
-    else:
-        st.info("По текущему профилю выраженных предпочтений не выявлено. Возможно, ты проявляешь интерес сразу к нескольким направлениям — попробуй пересмотреть ответы.")
+    st.caption("Процент соответствия рассчитывается по косинусному сходству вашего профиля с эталонными профилями направлений, "
+               "с учётом штрафа за недостижение порогов по устойчивости и толерантности к медицинским процедурам.")

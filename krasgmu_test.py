@@ -7,7 +7,7 @@ import datetime, os
 # ----------------------------------------------------------
 # НАСТРОЙКИ СТРАНИЦЫ
 # ----------------------------------------------------------
-st.set_page_config(page_title="Я — будущий врач?! (v8)", layout="centered", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="ИГМО", layout="centered", initial_sidebar_state="collapsed")
 
 try:
     st.image("Ресурс 1 (2).png", width=140)

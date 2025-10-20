@@ -300,7 +300,7 @@ if submitted:
     top3 = ranking[:3]
     rest = ranking[3:]
 
-    st.subheader("Топ-3 по соответствию")
+    st.subheader("Наиболее подходящие специальности")
     for name, sc in top3:
         st.write(f"**{name}** — {sc:.1f}%")
         st.progress(min(100, int(round(sc))))
